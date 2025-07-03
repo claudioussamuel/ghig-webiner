@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle, User, Mail, Phone, CreditCard, Sparkles } from "lucide-react"
 
-import { PaystackButton } from 'react-paystack';
 import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {
@@ -25,9 +24,25 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  const [usePaystackPayment, setUsePaystackPayment] = useState<any>(null)
 
   const paystackPublicKey = "pk_test_1efba1f06a065231bedfa5cfc784cd9fd4fc70f0"; // Replace with your Paystack public key
   const router = useRouter();
+
+  // Load Paystack hook only on client side
+  useEffect(() => {
+    setIsClient(true)
+    const loadPaystack = async () => {
+      try {
+        const { usePaystackPayment } = await import('react-paystack')
+        setUsePaystackPayment(() => usePaystackPayment)
+      } catch (error) {
+        console.error('Failed to load Paystack:', error)
+      }
+    }
+    loadPaystack()
+  }, [])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -51,7 +66,9 @@ export default function RegisterPage() {
     return isNaN(price) ? 0 : price * 100;
   };
 
-  const paystackProps = {
+  // Paystack configuration
+  const config = {
+    reference: (new Date()).getTime().toString(),
     email: formData.email,
     amount: getAmount(),
     metadata: {
@@ -75,24 +92,43 @@ export default function RegisterPage() {
     },
     publicKey: paystackPublicKey,
     currency: 'GHS',
-    text: isLoading ? "Processing..." : "Complete Registration & Pay",
-    disabled: !isFormValid || isLoading,
-    className:
-      "w-full h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none",
-    onSuccess: () => {
-      setSuccess(true);
-      setIsLoading(false);
-      setError("");
-      router.push("/thank-you");
-    },
-    onClose: () => {
-      setIsLoading(false);
-    },
-    onClick: () => {
-      setIsLoading(true);
-      setError("");
-      setSuccess(false);
-    },
+  };
+
+  // Success callback
+  const onSuccess = (reference: any) => {
+    router.push("/thank-you");
+    setSuccess(true);
+    setIsLoading(false);
+    setError("");
+    console.log('Payment successful:', reference);
+    
+  };
+
+  // Close callback
+  const onClose = () => {
+    setIsLoading(false);
+    console.log('Payment dialog closed');
+  };
+
+  // Initialize payment hook only when available
+  const initializePayment = usePaystackPayment ? usePaystackPayment(config) : null;
+
+  const handlePayment = () => {
+    if (!isFormValid) {
+      setError("Please fill in all required fields");
+      return;
+    }
+    
+    if (!initializePayment) {
+      setError("Payment system is loading, please try again in a moment");
+      return;
+    }
+    
+    setIsLoading(true);
+    setError("");
+    setSuccess(false);
+    
+    initializePayment({onSuccess, onClose});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -301,8 +337,15 @@ export default function RegisterPage() {
                   </Alert>
                 )}
 
-                {/* Submit Button replaced with PaystackButton */}
-                <PaystackButton {...paystackProps} />
+                {/* Submit Button replaced with Paystack Hook Button */}
+                <Button
+                  type="button"
+                  onClick={handlePayment}
+                  disabled={!isFormValid || isLoading || !isClient}
+                  className="w-full h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {!isClient ? "Loading..." : isLoading ? "Processing..." : "Complete Registration & Pay"}
+                </Button>
               </form>
 
               {/* Footer */}
