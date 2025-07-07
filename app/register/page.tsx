@@ -20,6 +20,7 @@ export default function RegisterPage() {
     email: "",
     phone: "",
     price: "",
+    role: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -57,7 +58,8 @@ export default function RegisterPage() {
     formData.otherNames.trim() &&
     formData.email.trim() &&
     formData.phone.trim() &&
-    formData.price;
+    formData.price &&
+    formData.role;
 
   // Convert price to kobo (for NGN) or pesewas (for GHS). Adjust as needed.
   const getAmount = () => {
@@ -88,6 +90,11 @@ export default function RegisterPage() {
           variable_name: "phone",
           value: formData.phone,
         },
+        {
+          display_name: "Role",
+          variable_name: "role",
+          value: formData.role,
+        },
       ],
     },
     publicKey: paystackPublicKey,
@@ -95,13 +102,37 @@ export default function RegisterPage() {
   };
 
   // Success callback
-  const onSuccess = (reference: any) => {
-    router.push("/thank-you");
-    setSuccess(true);
-    setIsLoading(false);
+  const onSuccess = async (reference: any) => {
+    setIsLoading(true);
     setError("");
+    setSuccess(false);
+
+    try {
+      // Send registration data to the API to trigger the email
+      const response = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.message || "Failed to send confirmation email.");
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+      setIsLoading(false);
+      setError("");
+      // Optionally, redirect after a short delay
+      router.push("/thank-you");
+    } catch (err) {
+      setError("An error occurred while sending confirmation email.");
+      setIsLoading(false);
+    }
+
     console.log('Payment successful:', reference);
-    
   };
 
   // Close callback
@@ -162,6 +193,11 @@ export default function RegisterPage() {
       return
     }
 
+    if (!formData.role) {
+      setError("Please select your role")
+      return
+    }
+
     setIsLoading(true)
     
 
@@ -169,7 +205,7 @@ export default function RegisterPage() {
     setTimeout(() => {
       console.log("Form submitted:", formData)
       setIsLoading(false)
-      // You can add actual form submission logic here
+      // You can add actual form submission logic here 
     }, 2000)
   }
 
@@ -296,8 +332,34 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* Price Dropdown */}
+             
+
+                {/* Role Dropdown */}
                 <div className="space-y-3">
+                  <Label htmlFor="role" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Role</span>
+                  </Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => handleInputChange("role", value)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="h-12 bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm">
+                      <SelectValue placeholder="Select your role" className="text-emerald-300" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-purple-900/95 border-purple-700 backdrop-blur-xl">
+                      <SelectItem value="Listening" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Listening
+                      </SelectItem>
+                      <SelectItem value="Presenting" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Presenting
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                   {/* Price Dropdown */}
+                   <div className="space-y-3">
                   <Label htmlFor="price" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
                     <CreditCard className="w-4 h-4" />
                     <span>Price Option</span>
@@ -312,10 +374,13 @@ export default function RegisterPage() {
                     </SelectTrigger>
                     <SelectContent className="bg-purple-900/95 border-purple-700 backdrop-blur-xl">
                       <SelectItem value="51gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
-                        51gh
+                        Member(Ghanaian) - 51gh
                       </SelectItem>
-                      <SelectItem value="102gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
-                        102gh
+                      <SelectItem value="71gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Non-Member(Ghanaian) - 71gh
+                      </SelectItem>
+                      <SelectItem value="210gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Foreign Participant - 210gh
                       </SelectItem>
                     </SelectContent>
                   </Select>
