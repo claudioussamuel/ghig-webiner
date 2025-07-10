@@ -13,6 +13,10 @@ import { AlertCircle, CheckCircle, User, Mail, Phone, CreditCard, Sparkles } fro
 
 import { useRouter } from "next/navigation"
 
+import {   collection, doc, getDoc, getDocs,  increment,  query, setDoc, updateDoc, where } from 'firebase/firestore';
+
+import { db } from "../config/firebase"
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     surname: "",
@@ -106,6 +110,10 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
     setSuccess(false);
+
+    // Generate a random 6-digit pin code
+    const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('Generated 6-digit pin code:', pinCode);
 
     try {
       // Send registration data to the API to trigger the email
@@ -252,7 +260,7 @@ export default function RegisterPage() {
             <CardHeader className="text-center space-y-2 pb-6">
               <div className="flex items-center justify-center space-x-2 mb-4">
                 <Sparkles className="w-5 h-5 text-purple-300" />
-                <CardTitle className="text-2xl font-bold text-white">Webiner Registration</CardTitle>
+                <CardTitle className="text-2xl font-bold text-white">Virtual Conference Registration</CardTitle>
                 <Sparkles className="w-5 h-5 text-purple-300" />
               </div>
               <CardDescription className="text-purple-200">
