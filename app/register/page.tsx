@@ -381,14 +381,14 @@ export default function RegisterPage() {
                       <SelectValue placeholder="Select a price option" className="text-emerald-300" />
                     </SelectTrigger>
                     <SelectContent className="bg-purple-900/95 border-purple-700 backdrop-blur-xl">
-                      <SelectItem value="51gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
-                        Member(Ghanaian) - 51gh
+                      <SelectItem value="50gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Member(Ghanaian) - 50gh
                       </SelectItem>
-                      <SelectItem value="71gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
-                        Non-Member(Ghanaian) - 71gh
+                      <SelectItem value="70gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Non-Member(Ghanaian) - 70gh
                       </SelectItem>
-                      <SelectItem value="210gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
-                        Foreign Participant - 210gh
+                      <SelectItem value="200gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Foreign Participant - 200gh
                       </SelectItem>
                     </SelectContent>
                   </Select>
