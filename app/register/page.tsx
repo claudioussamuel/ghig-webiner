@@ -13,7 +13,7 @@ import { AlertCircle, CheckCircle, User, Mail, Phone, CreditCard, Sparkles } fro
 
 import { useRouter } from "next/navigation"
 
-import {   collection, doc, getDoc, getDocs,  increment,  query, setDoc, updateDoc, where } from 'firebase/firestore';
+import {   collection, doc, getDoc, getDocs,  increment,  query, setDoc, updateDoc, where, addDoc } from 'firebase/firestore';
 
 import { db } from "../config/firebase"
 
@@ -73,7 +73,7 @@ export default function RegisterPage() {
   };
 
   // Paystack configuration
-  const config = {
+  const config = {           
     reference: (new Date()).getTime().toString(),
     email: formData.email,
     amount: getAmount(),
@@ -116,7 +116,15 @@ export default function RegisterPage() {
     console.log('Generated 6-digit pin code:', pinCode);
 
     try {
-      // Send registration data to the API to trigger the email
+      // 1. Add registration data to Firestore
+      await addDoc(collection(db, "webinar-1"), {
+        ...formData,
+        pinCode,
+        paymentReference: reference?.reference || "",
+        createdAt: new Date(),
+      });
+
+      // 2. Send registration data to the API to trigger the email
       const response = await fetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,10 +141,9 @@ export default function RegisterPage() {
       setSuccess(true);
       setIsLoading(false);
       setError("");
-      // Optionally, redirect after a short delay
       router.push("/thank-you");
     } catch (err) {
-      setError("An error occurred while sending confirmation email.");
+      setError("An error occurred while saving registration or sending email.");
       setIsLoading(false);
     }
 

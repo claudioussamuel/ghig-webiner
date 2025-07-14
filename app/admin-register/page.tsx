@@ -2,13 +2,71 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, CheckCircle, User, Mail, Phone, Shield, Sparkles } from "lucide-react"
+import { AlertCircle, CheckCircle, User, Mail, Phone, CreditCard, Shield, Sparkles } from "lucide-react"
+import { auth } from "../config/firebase"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth"
+import { db } from "../config/firebase"
+import { collection, addDoc } from "firebase/firestore"
+
+// AuthModal component for login/signup
+function AuthModal({ open, onClose, onAuthSuccess }: { open: boolean; onClose: () => void; onAuthSuccess: (user: FirebaseUser) => void }) {
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      let userCredential
+      if (isLogin) {
+        userCredential = await signInWithEmailAndPassword(auth, email, password)
+      } else {
+        userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      }
+      onAuthSuccess(userCredential.user)
+      onClose()
+    } catch (err: any) {
+      setError(err.message || "Authentication failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
+        {/* Remove close button to force authentication */}
+        {/* <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700">✕</button> */}
+        <h2 className="text-xl font-bold mb-4 text-center">{isLogin ? "Sign In" : "Sign Up"}</h2>
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
+            <Label htmlFor="auth-email">Email</Label>
+            <Input id="auth-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} />
+          </div>
+          <div>
+            <Label htmlFor="auth-password">Password</Label>
+            <Input id="auth-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={loading} />
+          </div>
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}</Button>
+        </form>
+       
+      </div>
+    </div>
+  )
+}
 
 export default function AdminRegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,10 +74,27 @@ export default function AdminRegisterPage() {
     otherNames: "",
     email: "",
     phone: "",
+    price: "",
+    role: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null)
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthUser(user)
+        setAuthModalOpen(false)
+      } else {
+        setAuthUser(null)
+        setAuthModalOpen(true)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -54,19 +129,50 @@ export default function AdminRegisterPage() {
       return
     }
 
-    setIsLoading(true)
-    setSuccess(true)
+    if (!formData.price) {
+      setError("Please select a price option")
+      return
+    }
 
-    // Simulate form submission
-    setTimeout(() => {
-      console.log("Admin form submitted:", formData)
+    if (!formData.role) {
+      setError("Please select your role")
+      return
+    }
+
+    setIsLoading(true)
+    setSuccess(false)
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData), 
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || "Failed to send email")
+      }
+      // Add to Firestore 'webinar-1' collection
+      await addDoc(collection(db, "webinar-1"), formData)
+      setSuccess(true)
+      setFormData({
+        surname: "",
+        otherNames: "",
+        email: "",
+        phone: "",
+        price: "",
+        role: "",
+      })
+    } catch (err: any) {
+      setError(err.message || "Failed to send email")
+    } finally {
       setIsLoading(false)
-      // You can add actual form submission logic here
-    }, 2000)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+      {/* Auth Modal */}
+      <AuthModal open={authModalOpen} onClose={() => {}} onAuthSuccess={setAuthUser} />
       {/* Animated background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
@@ -92,6 +198,15 @@ export default function AdminRegisterPage() {
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
+          {/* Show user email if logged in */}
+          {authUser && (
+            <div className="mb-4 text-center text-green-200 text-sm flex items-center justify-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-300" />
+              <span>Signed in as {authUser.email}</span>
+              <button className="ml-2 text-xs text-red-300 underline" onClick={async () => { await signOut(auth); setAuthUser(null); }}>Sign out</button>
+            </div>
+          )}
+          {/* Remove Auth button if not logged in */}
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4 shadow-2xl overflow-hidden">
@@ -120,7 +235,8 @@ export default function AdminRegisterPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Disable form if not authenticated */}
+              <form onSubmit={handleSubmit} className="space-y-6" style={{ opacity: authUser ? 1 : 0.5, pointerEvents: authUser ? 'auto' : 'none' }}>
                 {/* Surname Field */}
                 <div className="space-y-3">
                   <Label htmlFor="surname" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
@@ -190,6 +306,59 @@ export default function AdminRegisterPage() {
                     className="h-12 bg-white/10 border-white/20 text-white placeholder:text-purple-300 focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm"
                     disabled={isLoading}
                   />
+                </div>
+
+                {/* Role Dropdown */}
+                <div className="space-y-3">
+                  <Label htmlFor="role" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Role</span>
+                  </Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => handleInputChange("role", value)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="h-12 bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm">
+                      <SelectValue placeholder="Select your role" className="text-emerald-300" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-purple-900/95 border-purple-700 backdrop-blur-xl">
+                      <SelectItem value="Listening" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Listening
+                      </SelectItem>
+                      <SelectItem value="Presenting" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Presenting
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Dropdown */}
+                <div className="space-y-3">
+                  <Label htmlFor="price" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
+                    <CreditCard className="w-4 h-4" />
+                    <span>Price Option</span>
+                  </Label>
+                  <Select
+                    value={formData.price}
+                    onValueChange={(value) => handleInputChange("price", value)}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="h-12 bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm">
+                      <SelectValue placeholder="Select a price option" className="text-emerald-300" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-purple-900/95 border-purple-700 backdrop-blur-xl">
+                      <SelectItem value="50gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Member(Ghanaian) - 50gh
+                      </SelectItem>
+                      <SelectItem value="70gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Non-Member(Ghanaian) - 70gh
+                      </SelectItem>
+                      <SelectItem value="200gh" className="text-white hover:bg-purple-800/50 focus:bg-purple-800/50">
+                        Foreign Participant - 200gh
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Error Alert */}
