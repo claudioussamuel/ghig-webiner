@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [success, setSuccess] = useState(false)
 
   // Set the correct PIN here (you can change this to any 4-digit number)
-  const CORRECT_PIN = "1234"
+  const CORRECT_PIN = "123456"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,8 +31,8 @@ export default function LoginPage() {
       return
     }
 
-    if (pin.length !== 4) {
-      setError("Please enter a 4-digit PIN")
+    if (pin.length !== 6) {
+      setError("Please enter a 6-digit PIN")
       return
     }
 
@@ -123,10 +123,10 @@ export default function LoginPage() {
                 <div className="space-y-4">
                   <Label htmlFor="pin" className="text-sm font-medium text-purple-200 flex items-center space-x-2">
                     <Lock className="w-4 h-4" />
-                    <span>4-Digit PIN</span>
+                    <span>6-Digit PIN</span>
                   </Label>
                   <div className="flex justify-center">
-                    <InputOTP maxLength={4} value={pin} onChange={setPin} pattern="^[0-9]+$" disabled={isLoading}>
+                    <InputOTP maxLength={6} value={pin} onChange={setPin} pattern="^[0-9]+$" disabled={isLoading}>
                       <InputOTPGroup className="gap-3">
                         <InputOTPSlot
                           index={0}
@@ -142,6 +142,14 @@ export default function LoginPage() {
                         />
                         <InputOTPSlot
                           index={3}
+                          className="w-14 h-14 text-xl font-bold bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm"
+                        />
+                        <InputOTPSlot
+                          index={4}
+                          className="w-14 h-14 text-xl font-bold bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm"
+                        />
+                        <InputOTPSlot
+                          index={5}
                           className="w-14 h-14 text-xl font-bold bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20 backdrop-blur-sm"
                         />
                       </InputOTPGroup>

@@ -141,6 +141,14 @@ export default function AdminRegisterPage() {
 
     setIsLoading(true)
     setSuccess(false)
+
+
+
+
+        // Generate a random 6-digit pin code
+        const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
+        console.log('Generated 6-digit pin code:', pinCode);
+
     try {
       const res = await fetch("/api/contacts", {
         method: "POST",
@@ -152,7 +160,37 @@ export default function AdminRegisterPage() {
         throw new Error(data.message || "Failed to send email")
       }
       // Add to Firestore 'webinar-1' collection
-      await addDoc(collection(db, "webinar-1"), formData)
+      await addDoc(collection(db, "webinar-1"),
+       {
+        ...formData,
+        pinCode,
+        payed: false,
+        createdAt: new Date(),
+        admin: authUser?.email
+      
+    
+    }
+      )
+
+    //   {
+    //     surname: string;
+    //     otherNames: string;
+    //     email: string;
+    //     phone: string;
+    //     price: string;
+    //     role: string;
+    // }
+
+
+  //   {
+  //     surname: string;
+  //     otherNames: string;
+  //     email: string;
+  //     phone: string;
+  //     price: string;
+  //     role: string;
+  // }
+
       setSuccess(true)
       setFormData({
         surname: "",

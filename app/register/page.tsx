@@ -120,7 +120,7 @@ export default function RegisterPage() {
       await addDoc(collection(db, "webinar-1"), {
         ...formData,
         pinCode,
-        paymentReference: reference?.reference || "",
+        payed: true,
         createdAt: new Date(),
       });
 
@@ -215,13 +215,6 @@ export default function RegisterPage() {
 
     setIsLoading(true)
     
-
-    // Simulate form submission
-    setTimeout(() => {
-      console.log("Form submitted:", formData)
-      setIsLoading(false)
-      // You can add actual form submission logic here 
-    }, 2000)
   }
 
   return (
