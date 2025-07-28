@@ -4,68 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Users, DollarSign, TrendingUp, UserCheck, UserX, Sparkles, BarChart3, Calendar, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
-import { auth } from "../config/firebase"
-import { signInWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { db } from "../config/firebase"
 import { collection, getDocs } from "firebase/firestore"
-
-// AuthModal component for login
-function AuthModal({ open, onClose, onAuthSuccess }: { open: boolean; onClose: () => void; onAuthSuccess: (user: FirebaseUser) => void }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      onAuthSuccess(userCredential.user)
-      onClose()
-    } catch (err: any) {
-      setError(err.message || "Authentication failed")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
-        <h2 className="text-xl font-bold mb-4 text-center">Sign In</h2>
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <Label htmlFor="auth-email">Email</Label>
-            <Input id="auth-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} />
-          </div>
-          <div>
-            <Label htmlFor="auth-password">Password</Label>
-            <Input id="auth-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={loading} />
-          </div>
-          {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" />{error}</Alert>}
-          <Button type="submit" className="w-full" disabled={loading}>{loading ? "Processing..." : "Sign In"}</Button>
-        </form>
-      </div>
-    </div>
-  )
-}
 
 export default function DashboardPage() {
   const [showMembersList, setShowMembersList] = useState(false)
   const [showRevenueList, setShowRevenueList] = useState(false)
   const [showFreeList, setShowFreeList] = useState(false)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null)
-  const [authLoading, setAuthLoading] = useState(true)
   const [membersData, setMembersData] = useState<any[]>([])
   const [stats, setStats] = useState({
     totalMembers: 0,
@@ -79,21 +25,6 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setAuthUser(user)
-        setAuthModalOpen(false)
-      } else {
-        setAuthUser(null)
-        setAuthModalOpen(true)
-      }
-      setAuthLoading(false)
-    })
-    return () => unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    if (!authUser) return
     setDataLoading(true)
     const fetchMembers = async () => {
       const snapshot = await getDocs(collection(db, "webinar-1"))
@@ -132,9 +63,9 @@ export default function DashboardPage() {
       setDataLoading(false)
     }
     fetchMembers()
-  }, [authUser])
+  }, [])
 
-  if (authLoading || dataLoading) {
+  if (dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900">
         <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
@@ -211,466 +142,463 @@ export default function DashboardPage() {
 
   return (
     <>
-      <AuthModal open={authModalOpen} onClose={() => {}} onAuthSuccess={setAuthUser} />
-      {authUser && (
-        <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
-          {/* Animated background elements */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+        </div>
 
-          {/* Floating particles */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${2 + Math.random() * 2}s`,
-                }}
-              ></div>
-            ))}
-          </div>
+        {/* Floating particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-white/20 rounded-full animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            ></div>
+          ))}
+        </div>
 
-          <div className="relative z-10 min-h-screen p-4">
-            <div className="max-w-7xl mx-auto">
-              {/* Header */}
-              <div className="text-center mb-8 pt-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4 shadow-2xl overflow-hidden">
-                  <img src="/placeholder.svg?height=32&width=32" alt="Dashboard Icon" className="w-8 h-8 object-cover" />
-                </div>
-                <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
-                  Admin Dashboard
-                </h1>
-                <p className="text-purple-200 text-lg">Overview of members and revenue</p>
+        <div className="relative z-10 min-h-screen p-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8 pt-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4 shadow-2xl overflow-hidden">
+                <img src="/placeholder.svg?height=32&width=32" alt="Dashboard Icon" className="w-8 h-8 object-cover" />
               </div>
+              <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
+                Admin Dashboard
+              </h1>
+              <p className="text-purple-200 text-lg">Overview of members and revenue</p>
+            </div>
 
-              {/* Mobile Members List Modal */}
-              {showMembersList && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                  <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-white/10">
-                      <h2 className="text-xl font-bold text-white">All Members</h2>
-                      <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
-                        <X className="h-5 w-5" />
+            {/* Mobile Members List Modal */}
+            {showMembersList && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
+                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                    <h2 className="text-xl font-bold text-white">All Members</h2>
+                    <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <div className="p-4 h-full overflow-y-auto">
+                    <div className="space-y-3">
+                      {membersData.map((member) => (
+                        <div
+                          key={member.id}
+                          className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-white">{member.name}</h3>
+                            <Badge
+                              className={
+                                member.status === "paid"
+                                  ? "bg-green-500/20 text-green-300 border-green-400/30"
+                                  : "bg-orange-500/20 text-orange-300 border-orange-400/30"
+                              }
+                            >
+                              {member.status === "paid" ? "Paid" : "Free"}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm text-purple-200">
+                            <p>{member.email}</p>
+                            <p>{member.phone}</p>
+                            <div className="flex justify-between items-center pt-2">
+                              <span>{new Date(member.date).toLocaleDateString()}</span>
+                              <span className="font-medium text-white">
+                                {member.amount > 0 ? `GH₵${member.amount}` : "Free"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <Button
+                        onClick={exportToCSV}
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
+                      >
+                        Export to CSV
                       </Button>
                     </div>
-                    <div className="p-4 h-full overflow-y-auto">
-                      <div className="space-y-3">
-                        {membersData.map((member) => (
-                          <div
-                            key={member.id}
-                            className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold text-white">{member.name}</h3>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Revenue List Modal */}
+            {showRevenueList && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
+                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                    <h2 className="text-xl font-bold text-white">Payment Details</h2>
+                    <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <div className="p-4 h-full overflow-y-auto">
+                    <div className="mb-4 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                      <div className="text-center">
+                        <p className="text-green-300 text-sm">Total Revenue</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
+                        <p className="text-green-300 text-xs mt-1">From {paidMembers.length} paid members</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {paidMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-white">{member.name}</h3>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-green-300">GH₵{member.amount}</p>
+                              <Badge className="bg-green-500/20 text-green-300 border-green-400/30 text-xs">Paid</Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1 text-sm text-purple-200">
+                            <p>{member.email}</p>
+                            <p>{member.phone}</p>
+                            <div className="flex justify-between items-center pt-2">
+                              <span>Payment Date: {new Date(member.date).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-center p-3 bg-white/5 rounded-lg">
+                          <p className="text-xs text-purple-300">Average Payment</p>
+                          <p className="text-lg font-bold text-white">
+                            GH₵{Math.round(paidMembers.reduce((sum, m) => sum + m.amount, 0) / paidMembers.length)}
+                          </p>
+                        </div>
+                        <div className="text-center p-3 bg-white/5 rounded-lg">
+                          <p className="text-xs text-purple-300">Total Payments</p>
+                          <p className="text-lg font-bold text-white">{paidMembers.length}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Free Members List Modal */}
+            {showFreeList && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
+                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                    <h2 className="text-xl font-bold text-white">Free Members</h2>
+                    <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <div className="p-4 h-full overflow-y-auto">
+                    <div className="mb-4 p-4 bg-orange-500/20 rounded-lg border border-orange-400/30">
+                      <div className="text-center">
+                        <p className="text-orange-300 text-sm">Free Members</p>
+                        <p className="text-2xl font-bold text-white">{freeMembers.length}</p>
+                        <p className="text-orange-300 text-xs mt-1">{freePercentage.toFixed(1)}% of total members</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {freeMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-white">{member.name}</h3>
+                            <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">Free</Badge>
+                          </div>
+                          <div className="space-y-1 text-sm text-purple-200">
+                            <p>{member.email}</p>
+                            <p>{member.phone}</p>
+                            <div className="flex justify-between items-center pt-2">
+                              <span>Joined: {new Date(member.date).toLocaleDateString()}</span>
+                              <span className="text-orange-300 font-medium">No Payment</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="text-center p-3 bg-white/5 rounded-lg">
+                        <p className="text-xs text-purple-300">Potential Revenue</p>
+                        <p className="text-lg font-bold text-white">
+                          GH₵{freeMembers.length * 51} - GH₵{freeMembers.length * 102}
+                        </p>
+                        <p className="text-xs text-purple-300 mt-1">If converted to paid memberships</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {/* Total Members - Clickable on mobile */}
+              <Card
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleTotalMembersClick}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-200">Total Members</CardTitle>
+                  <Users className="h-4 w-4 text-purple-300" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white">{stats.totalMembers.toLocaleString()}</div>
+                  <div className="flex items-center space-x-1 text-xs text-green-300 mt-1">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{stats.memberGrowth}% from last month</span>
+                  </div>
+                  <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view members</div>
+                </CardContent>
+              </Card>
+
+              {/* Paid Members */}
+              <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-200">Paid Members</CardTitle>
+                  <UserCheck className="h-4 w-4 text-green-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white">{stats.paidMembers.toLocaleString()}</div>
+                  <div className="text-xs text-purple-300 mt-1">{paidPercentage.toFixed(1)}% of total members</div>
+                </CardContent>
+              </Card>
+
+              {/* Free Members - Clickable on mobile */}
+              <Card
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleFreeMembersClick}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-200">Free Members</CardTitle>
+                  <UserX className="h-4 w-4 text-orange-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white">{stats.freeMembers.toLocaleString()}</div>
+                  <div className="text-xs text-purple-300 mt-1">{freePercentage.toFixed(1)}% of total members</div>
+                  <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view free members</div>
+                </CardContent>
+              </Card>
+
+              {/* Total Revenue - Clickable on mobile */}
+              <Card
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleTotalRevenueClick}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-200">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-green-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</div>
+                  <div className="flex items-center space-x-1 text-xs text-green-300 mt-1">
+                    <TrendingUp className="h-3 w-3" />
+                    <span>+{stats.revenueGrowth}% from last month</span>
+                  </div>
+                  <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view payments</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Revenue Breakdown */}
+              <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5 text-purple-300" />
+                    <CardTitle className="text-xl font-bold text-white">Revenue Breakdown</CardTitle>
+                  </div>
+                  <CardDescription className="text-purple-200">Monthly and total revenue overview</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg backdrop-blur-sm">
+                    <div>
+                      <p className="text-sm text-purple-200">This Month</p>
+                      <p className="text-2xl font-bold text-white">{formatCurrency(stats.monthlyRevenue)}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-purple-300" />
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg backdrop-blur-sm">
+                    <div>
+                      <p className="text-sm text-purple-200">All Time</p>
+                      <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
+                    </div>
+                    <BarChart3 className="h-8 w-8 text-purple-300" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Member Distribution */}
+              <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+                <CardHeader>
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5 text-purple-300" />
+                    <CardTitle className="text-xl font-bold text-white">Member Distribution</CardTitle>
+                  </div>
+                  <CardDescription className="text-purple-200">Breakdown of paid vs free members</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Paid Members Progress */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-purple-200">Paid Members</span>
+                      <span className="text-green-300">{stats.paidMembers.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${paidPercentage}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-purple-300">{paidPercentage.toFixed(1)}% of total</p>
+                  </div>
+
+                  {/* Free Members Progress */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-purple-200">Free Members</span>
+                      <span className="text-orange-300">{stats.freeMembers.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${freePercentage}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-purple-300">{freePercentage.toFixed(1)}% of total</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Members Table - Hidden on mobile when modal is available */}
+            <div className="mb-8 hidden lg:block">
+              <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-5 h-5 text-purple-300" />
+                      <CardTitle className="text-xl font-bold text-white">Recent Members</CardTitle>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportToCSV}
+                      className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                    >
+                      CSV
+                    </Button>
+                  </div>
+                  <CardDescription className="text-purple-200">
+                    Latest member registrations and their status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Name</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Email</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Phone</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Status</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Amount</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {membersData.slice(0, 6).map((member) => (
+                          <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 text-sm text-white font-medium">{member.name}</td>
+                            <td className="py-3 px-4 text-sm text-purple-200">{member.email}</td>
+                            <td className="py-3 px-4 text-sm text-purple-200">{member.phone}</td>
+                            <td className="py-3 px-4">
                               <Badge
                                 className={
                                   member.status === "paid"
-                                    ? "bg-green-500/20 text-green-300 border-green-400/30"
-                                    : "bg-orange-500/20 text-orange-300 border-orange-400/30"
+                                    ? "bg-green-500/20 text-green-300 border-green-400/30 hover:bg-green-500/30"
+                                    : "bg-orange-500/20 text-orange-300 border-orange-400/30 hover:bg-orange-500/30"
                                 }
                               >
                                 {member.status === "paid" ? "Paid" : "Free"}
                               </Badge>
-                            </div>
-                            <div className="space-y-1 text-sm text-purple-200">
-                              <p>{member.email}</p>
-                              <p>{member.phone}</p>
-                              <div className="flex justify-between items-center pt-2">
-                                <span>{new Date(member.date).toLocaleDateString()}</span>
-                                <span className="font-medium text-white">
-                                  {member.amount > 0 ? `GH₵${member.amount}` : "Free"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-white font-medium">
+                              {member.amount > 0 ? `GH₵${member.amount}` : "-"}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-purple-200">
+                              {new Date(member.date).toLocaleDateString()}
+                            </td>
+                          </tr>
                         ))}
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <Button
-                          onClick={exportToCSV}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
-                        >
-                          Export to CSV
-                        </Button>
-                      </div>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-              )}
 
-              {/* Mobile Revenue List Modal */}
-              {showRevenueList && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                  <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-white/10">
-                      <h2 className="text-xl font-bold text-white">Payment Details</h2>
-                      <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                    <div className="p-4 h-full overflow-y-auto">
-                      <div className="mb-4 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
-                        <div className="text-center">
-                          <p className="text-green-300 text-sm">Total Revenue</p>
-                          <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
-                          <p className="text-green-300 text-xs mt-1">From {paidMembers.length} paid members</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        {paidMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold text-white">{member.name}</h3>
-                              <div className="text-right">
-                                <p className="text-lg font-bold text-green-300">GH₵{member.amount}</p>
-                                <Badge className="bg-green-500/20 text-green-300 border-green-400/30 text-xs">Paid</Badge>
-                              </div>
-                            </div>
-                            <div className="space-y-1 text-sm text-purple-200">
-                              <p>{member.email}</p>
-                              <p>{member.phone}</p>
-                              <div className="flex justify-between items-center pt-2">
-                                <span>Payment Date: {new Date(member.date).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <p className="text-xs text-purple-300">Average Payment</p>
-                            <p className="text-lg font-bold text-white">
-                              GH₵{Math.round(paidMembers.reduce((sum, m) => sum + m.amount, 0) / paidMembers.length)}
-                            </p>
-                          </div>
-                          <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <p className="text-xs text-purple-300">Total Payments</p>
-                            <p className="text-lg font-bold text-white">{paidMembers.length}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Mobile Free Members List Modal */}
-              {showFreeList && (
-                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                  <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                    <div className="flex items-center justify-between p-4 border-b border-white/10">
-                      <h2 className="text-xl font-bold text-white">Free Members</h2>
-                      <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                    <div className="p-4 h-full overflow-y-auto">
-                      <div className="mb-4 p-4 bg-orange-500/20 rounded-lg border border-orange-400/30">
-                        <div className="text-center">
-                          <p className="text-orange-300 text-sm">Free Members</p>
-                          <p className="text-2xl font-bold text-white">{freeMembers.length}</p>
-                          <p className="text-orange-300 text-xs mt-1">{freePercentage.toFixed(1)}% of total members</p>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        {freeMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="font-semibold text-white">{member.name}</h3>
-                              <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">Free</Badge>
-                            </div>
-                            <div className="space-y-1 text-sm text-purple-200">
-                              <p>{member.email}</p>
-                              <p>{member.phone}</p>
-                              <div className="flex justify-between items-center pt-2">
-                                <span>Joined: {new Date(member.date).toLocaleDateString()}</span>
-                                <span className="text-orange-300 font-medium">No Payment</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-white/10">
-                        <div className="text-center p-3 bg-white/5 rounded-lg">
-                          <p className="text-xs text-purple-300">Potential Revenue</p>
-                          <p className="text-lg font-bold text-white">
-                            GH₵{freeMembers.length * 51} - GH₵{freeMembers.length * 102}
-                          </p>
-                          <p className="text-xs text-purple-300 mt-1">If converted to paid memberships</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {/* Total Members - Clickable on mobile */}
-                <Card
-                  className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
-                  onClick={handleTotalMembersClick}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-200">Total Members</CardTitle>
-                    <Users className="h-4 w-4 text-purple-300" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.totalMembers.toLocaleString()}</div>
-                    <div className="flex items-center space-x-1 text-xs text-green-300 mt-1">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>+{stats.memberGrowth}% from last month</span>
-                    </div>
-                    <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view members</div>
-                  </CardContent>
-                </Card>
-
-                {/* Paid Members */}
-                <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-200">Paid Members</CardTitle>
-                    <UserCheck className="h-4 w-4 text-green-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.paidMembers.toLocaleString()}</div>
-                    <div className="text-xs text-purple-300 mt-1">{paidPercentage.toFixed(1)}% of total members</div>
-                  </CardContent>
-                </Card>
-
-                {/* Free Members - Clickable on mobile */}
-                <Card
-                  className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
-                  onClick={handleFreeMembersClick}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-200">Free Members</CardTitle>
-                    <UserX className="h-4 w-4 text-orange-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.freeMembers.toLocaleString()}</div>
-                    <div className="text-xs text-purple-300 mt-1">{freePercentage.toFixed(1)}% of total members</div>
-                    <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view free members</div>
-                  </CardContent>
-                </Card>
-
-                {/* Total Revenue - Clickable on mobile */}
-                <Card
-                  className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
-                  onClick={handleTotalRevenueClick}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-200">Total Revenue</CardTitle>
-                    <DollarSign className="h-4 w-4 text-green-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</div>
-                    <div className="flex items-center space-x-1 text-xs text-green-300 mt-1">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>+{stats.revenueGrowth}% from last month</span>
-                    </div>
-                    <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view payments</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Detailed Cards */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* Revenue Breakdown */}
-                <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-                  <CardHeader>
+                  {/* Table Footer */}
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+                    <p className="text-sm text-purple-300">Showing 6 of {membersData.length} members</p>
                     <div className="flex items-center space-x-2">
-                      <Sparkles className="w-5 h-5 text-purple-300" />
-                      <CardTitle className="text-xl font-bold text-white">Revenue Breakdown</CardTitle>
-                    </div>
-                    <CardDescription className="text-purple-200">Monthly and total revenue overview</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg backdrop-blur-sm">
-                      <div>
-                        <p className="text-sm text-purple-200">This Month</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(stats.monthlyRevenue)}</p>
-                      </div>
-                      <Calendar className="h-8 w-8 text-purple-300" />
-                    </div>
-                    <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg backdrop-blur-sm">
-                      <div>
-                        <p className="text-sm text-purple-200">All Time</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
-                      </div>
-                      <BarChart3 className="h-8 w-8 text-purple-300" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Member Distribution */}
-                <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-                  <CardHeader>
-                    <div className="flex items-center space-x-2">
-                      <Sparkles className="w-5 h-5 text-purple-300" />
-                      <CardTitle className="text-xl font-bold text-white">Member Distribution</CardTitle>
-                    </div>
-                    <CardDescription className="text-purple-200">Breakdown of paid vs free members</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Paid Members Progress */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-purple-200">Paid Members</span>
-                        <span className="text-green-300">{stats.paidMembers.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-1000"
-                          style={{ width: `${paidPercentage}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-purple-300">{paidPercentage.toFixed(1)}% of total</p>
-                    </div>
-
-                    {/* Free Members Progress */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-purple-200">Free Members</span>
-                        <span className="text-orange-300">{stats.freeMembers.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 rounded-full transition-all duration-1000"
-                          style={{ width: `${freePercentage}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-purple-300">{freePercentage.toFixed(1)}% of total</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Members Table - Hidden on mobile when modal is available */}
-              <div className="mb-8 hidden lg:block">
-                <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Sparkles className="w-5 h-5 text-purple-300" />
-                        <CardTitle className="text-xl font-bold text-white">Recent Members</CardTitle>
-                      </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={exportToCSV}
+                        className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                        disabled
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
                       >
-                        CSV
+                        Next
                       </Button>
                     </div>
-                    <CardDescription className="text-purple-200">
-                      Latest member registrations and their status
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-white/10">
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Name</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Email</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Phone</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Status</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Amount</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {membersData.slice(0, 6).map((member) => (
-                            <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                              <td className="py-3 px-4 text-sm text-white font-medium">{member.name}</td>
-                              <td className="py-3 px-4 text-sm text-purple-200">{member.email}</td>
-                              <td className="py-3 px-4 text-sm text-purple-200">{member.phone}</td>
-                              <td className="py-3 px-4">
-                                <Badge
-                                  className={
-                                    member.status === "paid"
-                                      ? "bg-green-500/20 text-green-300 border-green-400/30 hover:bg-green-500/30"
-                                      : "bg-orange-500/20 text-orange-300 border-orange-400/30 hover:bg-orange-500/30"
-                                  }
-                                >
-                                  {member.status === "paid" ? "Paid" : "Free"}
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-white font-medium">
-                                {member.amount > 0 ? `GH₵${member.amount}` : "-"}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-purple-200">
-                                {new Date(member.date).toLocaleDateString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                    {/* Table Footer */}
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-                      <p className="text-sm text-purple-300">Showing 6 of {membersData.length} members</p>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
-                          disabled
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                View Detailed Reports
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm font-semibold px-8 py-3 transition-all duration-300"
+              >
+                <Users className="w-5 h-5 mr-2" />
+                Manage Members
+              </Button>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
-                  <BarChart3 className="w-5 h-5 mr-2" />
-                  View Detailed Reports
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm font-semibold px-8 py-3 transition-all duration-300"
-                >
-                  <Users className="w-5 h-5 mr-2" />
-                  Manage Members
-                </Button>
-              </div>
-
-              {/* Bottom text */}
-              <div className="text-center mt-8 pb-8">
-                <p className="text-purple-300 text-sm">Last updated: {new Date().toLocaleDateString()}</p>
-              </div>
+            {/* Bottom text */}
+            <div className="text-center mt-8 pb-8">
+              <p className="text-purple-300 text-sm">Last updated: {new Date().toLocaleDateString()}</p>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </>
   )
 }
