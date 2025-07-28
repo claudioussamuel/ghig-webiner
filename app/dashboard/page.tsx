@@ -7,6 +7,61 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { db } from "../config/firebase"
 import { collection, getDocs } from "firebase/firestore"
+import { auth } from "../config/firebase"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth"
+
+// AuthModal component for login/signup
+function AuthModal({ open, onClose, onAuthSuccess }: { open: boolean; onClose: () => void; onAuthSuccess: (user: FirebaseUser) => void }) {
+  const [isLogin, setIsLogin] = useState(true)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+    try {
+      let userCredential
+      if (isLogin) {
+        userCredential = await signInWithEmailAndPassword(auth, email, password)
+      } else {
+        userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      }
+      onAuthSuccess(userCredential.user)
+      onClose()
+    } catch (err: any) {
+      setError(err.message || "Authentication failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm relative">
+        <h2 className="text-xl font-bold mb-4 text-center">{isLogin ? "Sign In" : "Sign Up"}</h2>
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
+            <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input id="auth-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+          <div>
+            <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700">Password</label>
+            <input id="auth-password" type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={loading} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+          </div>
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <button type="submit" className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-md font-semibold" disabled={loading}>{loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}</button>
+        </form>
+        <div className="mt-4 text-center">
+         
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const [showMembersList, setShowMembersList] = useState(false)
@@ -23,6 +78,8 @@ export default function DashboardPage() {
     memberGrowth: 0,
   })
   const [dataLoading, setDataLoading] = useState(true)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authUser, setAuthUser] = useState<FirebaseUser | null>(null)
 
   useEffect(() => {
     setDataLoading(true)
@@ -63,7 +120,22 @@ export default function DashboardPage() {
       setDataLoading(false)
     }
     fetchMembers()
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setAuthUser(user)
+        setAuthModalOpen(false)
+      } else {
+        setAuthUser(null)
+        setAuthModalOpen(true)
+      }
+    })
+    return () => unsubscribe()
   }, [])
+
+  if (!authUser) {
+    return <AuthModal open={authModalOpen} onClose={() => {}} onAuthSuccess={setAuthUser} />
+  }
 
   if (dataLoading) {
     return (
@@ -369,7 +441,10 @@ export default function DashboardPage() {
               </Card>
 
               {/* Paid Members */}
-              <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+              <Card
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleTotalRevenueClick}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-200">Paid Members</CardTitle>
                   <UserCheck className="h-4 w-4 text-green-400" />
@@ -382,8 +457,7 @@ export default function DashboardPage() {
 
               {/* Free Members - Clickable on mobile */}
               <Card
-                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
-                onClick={handleFreeMembersClick}
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default"
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-200">Free Members</CardTitle>
@@ -398,8 +472,7 @@ export default function DashboardPage() {
 
               {/* Total Revenue - Clickable on mobile */}
               <Card
-                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
-                onClick={handleTotalRevenueClick}
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default"
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-200">Total Revenue</CardTitle>
