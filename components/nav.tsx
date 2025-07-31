@@ -1,11 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState,  } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
+import { auth } from '../app/config/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/'); 
+  };
 
   return (
     <nav className="w-full z-50 bg-gradient-to-r from-violet-900 via-purple-900 to-indigo-900 shadow-lg border-b border-white/10 sticky top-0">
@@ -22,6 +32,12 @@ export default function Navbar() {
           <Link href="/register" className="text-purple-200 hover:text-white font-medium transition-colors">Register</Link>
           <Link href="/admin-register" className="text-purple-200 hover:text-white font-medium transition-colors">Admin Register</Link>
           <Link href="/thank-you" className="text-purple-200 hover:text-white font-medium transition-colors">Thank You</Link>
+          <button
+           onClick={handleLogout}
+           className="block text-purple-200 hover:text-white font-medium"
+          >
+          Logout
+          </button>
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -40,6 +56,12 @@ export default function Navbar() {
           <Link href="/register" className="block text-purple-200 hover:text-white font-medium">Register</Link>
           <Link href="/admin-register" className="block text-purple-200 hover:text-white font-medium">Admin Register</Link>
           <Link href="/thank-you" className="block text-purple-200 hover:text-white font-medium">Thank You</Link>
+          <button
+           onClick={handleLogout}
+           className="block text-purple-200 hover:text-white font-medium"
+          >
+          Logout
+          </button>
         </div>
       )}
     </nav>
