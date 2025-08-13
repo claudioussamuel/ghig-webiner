@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { User as FirebaseUser } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
 interface UserData {
@@ -35,16 +35,23 @@ export function useUserRole(user: FirebaseUser | null): UseUserRoleReturn {
       setError(null)
 
       try {
-        // Get user document by email from the 'users' collection
-        const userDocRef = doc(db, 'users', user.email)
-        const userDoc = await getDoc(userDocRef)
+        // Query user document by email field from the 'webinar-1' collection
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('email', '==', user.email)
+        )
+        const querySnapshot = await getDocs(usersQuery)
 
-        if (userDoc.exists()) {
+        if (!querySnapshot.empty) {
+          // Get the first matching document
+          const userDoc = querySnapshot.docs[0]
           const data = userDoc.data() as UserData
           setUserData(data)
           setUserRole(data.role || null)
+
+          console.log(data.role)
         } else {
-          setError('User document not found in users collection')
+          setError('User document not found in webinar-1 collection')
           setUserRole(null)
           setUserData(null)
         }

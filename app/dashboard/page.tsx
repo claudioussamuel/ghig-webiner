@@ -203,6 +203,7 @@ export default function DashboardPage() {
 
   // Show unauthorized if user is authenticated but not admin
   if (authUser && !roleLoading && userRole !== 'admin') {
+  
     return <UnauthorizedAccess user={authUser} onSignOut={handleSignOut} />
   }
 
