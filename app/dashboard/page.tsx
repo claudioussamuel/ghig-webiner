@@ -112,6 +112,8 @@ export default function DashboardPage() {
   const [showRevenueList, setShowRevenueList] = useState(false)
   const [showFreeList, setShowFreeList] = useState(false)
   const [membersData, setMembersData] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(6)
   const [stats, setStats] = useState({
     totalMembers: 0,
     paidMembers: 0,
@@ -301,6 +303,20 @@ export default function DashboardPage() {
     setShowFreeList(false)
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(membersData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentMembers = membersData.slice(startIndex, endIndex)
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages))
+  }
+
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden">
@@ -343,14 +359,14 @@ export default function DashboardPage() {
             {/* Mobile Members List Modal */}
             {showMembersList && (
               <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="absolute top-16 left-2 right-2 bottom-2 sm:top-20 sm:left-4 sm:right-4 sm:bottom-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">All Members</h2>
                     <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
-                  <div className="p-4 h-full overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
                     <div className="space-y-3">
                       {membersData.map((member) => (
                         <div
@@ -375,14 +391,14 @@ export default function DashboardPage() {
                             <div className="flex justify-between items-center pt-2">
                               <span>{new Date(member.date).toLocaleDateString()}</span>
                               <span className="font-medium text-white">
-                                {member.amount > 0 ? `GH₵${member.amount}` : "Free"}
+                                {member.status === "paid" ? `GH₵${typeof member.amount === 'string' && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount}` : "Free"}
                               </span>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="mt-4 pt-4 border-t border-white/10 flex-shrink-0">
                       <Button
                         onClick={exportToCSV}
                         className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold"
@@ -398,14 +414,14 @@ export default function DashboardPage() {
             {/* Mobile Revenue List Modal */}
             {showRevenueList && (
               <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="absolute top-16 left-2 right-2 bottom-2 sm:top-20 sm:left-4 sm:right-4 sm:bottom-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">Payment Details</h2>
                     <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
-                  <div className="p-4 h-full overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
                     <div className="mb-4 p-4 bg-green-500/20 rounded-lg border border-green-400/30">
                       <div className="text-center">
                         <p className="text-green-300 text-sm">Total Revenue</p>
@@ -422,7 +438,9 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between mb-2">
                             <h3 className="font-semibold text-white">{member.name}</h3>
                             <div className="text-right">
-                              <p className="text-lg font-bold text-green-300">GH₵{member.amount}</p>
+                              <p className="text-lg font-bold text-green-300">
+                                GH₵{typeof member.amount === 'string' && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount}
+                              </p>
                               <Badge className="bg-green-500/20 text-green-300 border-green-400/30 text-xs">Paid</Badge>
                             </div>
                           </div>
@@ -436,12 +454,12 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="mt-4 pt-4 border-t border-white/10 flex-shrink-0">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="text-center p-3 bg-white/5 rounded-lg">
                           <p className="text-xs text-purple-300">Average Payment</p>
                           <p className="text-lg font-bold text-white">
-                            GH₵{Math.round(paidMembers.reduce((sum, m) => sum + m.amount, 0) / paidMembers.length)}
+                            GH₵{paidMembers.length > 0 ? Math.round(paidMembers.reduce((sum, m) => sum + (typeof m.amount === 'string' && m.amount.match(/\d+/) ? parseInt(m.amount.match(/\d+/)[0], 10) : m.amount), 0) / paidMembers.length) : 0}
                           </p>
                         </div>
                         <div className="text-center p-3 bg-white/5 rounded-lg">
@@ -458,14 +476,14 @@ export default function DashboardPage() {
             {/* Mobile Free Members List Modal */}
             {showFreeList && (
               <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden">
-                <div className="absolute inset-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="absolute top-16 left-2 right-2 bottom-2 sm:top-20 sm:left-4 sm:right-4 sm:bottom-4 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between p-4 border-b border-white/10 flex-shrink-0">
                     <h2 className="text-xl font-bold text-white">Free Members</h2>
                     <Button variant="ghost" size="sm" onClick={closeAllModals} className="text-white hover:bg-white/10">
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
-                  <div className="p-4 h-full overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
                     <div className="mb-4 p-4 bg-orange-500/20 rounded-lg border border-orange-400/30">
                       <div className="text-center">
                         <p className="text-orange-300 text-sm">Free Members</p>
@@ -494,7 +512,7 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="mt-4 pt-4 border-t border-white/10 flex-shrink-0">
                       <div className="text-center p-3 bg-white/5 rounded-lg">
                         <p className="text-xs text-purple-300">Potential Revenue</p>
                         <p className="text-lg font-bold text-white">
@@ -541,12 +559,14 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="text-2xl font-bold text-white">{stats.paidMembers.toLocaleString()}</div>
                   <div className="text-xs text-purple-300 mt-1">{paidPercentage.toFixed(1)}% of total members</div>
+                  <div className="lg:hidden text-xs text-purple-300 mt-2">Tap to view payments</div>
                 </CardContent>
               </Card>
 
               {/* Free Members - Clickable on mobile */}
               <Card
-                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default"
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleFreeMembersClick}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-200">Free Members</CardTitle>
@@ -561,7 +581,8 @@ export default function DashboardPage() {
 
               {/* Total Revenue - Clickable on mobile */}
               <Card
-                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default"
+                className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl lg:cursor-default cursor-pointer lg:hover:bg-white/10 hover:bg-white/15 transition-all duration-200"
+                onClick={handleTotalRevenueClick}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-200">Total Revenue</CardTitle>
@@ -686,7 +707,7 @@ export default function DashboardPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {membersData.slice(0, 6).map((member) => (
+                        {currentMembers.map((member) => (
                           <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                             <td className="py-3 px-4 text-sm text-white font-medium">{member.name}</td>
                             <td className="py-3 px-4 text-sm text-purple-200">{member.email}</td>
@@ -703,7 +724,7 @@ export default function DashboardPage() {
                               </Badge>
                             </td>
                             <td className="py-3 px-4 text-sm text-white font-medium">
-                              {member.amount > 0 ? `GH₵${member.amount}` : "-"}
+                              {member.status === "paid" ? `GH₵${typeof member.amount === 'string' && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount}` : "-"}
                             </td>
                             <td className="py-3 px-4 text-sm text-purple-200">
                               {new Date(member.date).toLocaleDateString()}
@@ -716,20 +737,30 @@ export default function DashboardPage() {
 
                   {/* Table Footer */}
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
-                    <p className="text-sm text-purple-300">Showing 6 of {membersData.length} members</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <p className="text-sm text-purple-300">
+                        Showing {startIndex + 1}-{Math.min(endIndex, membersData.length)} of {membersData.length} members
+                      </p>
+                      <p className="text-xs text-purple-400">
+                        Page {currentPage} of {totalPages}
+                      </p>
+                    </div>
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
-                        disabled
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Previous
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="bg-white/10 border-white/20 text-purple-200 hover:bg-white/20 hover:text-white backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
                       </Button>
