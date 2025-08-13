@@ -9,6 +9,9 @@ import { db } from "../config/firebase"
 import { collection, getDocs } from "firebase/firestore"
 import { auth } from "../config/firebase"
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth"
+import { useUserRole } from "../hooks/useUserRole"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, Shield } from "lucide-react"
 
 // AuthModal component for login/signup
 function AuthModal({ open, onClose, onAuthSuccess }: { open: boolean; onClose: () => void; onAuthSuccess: (user: FirebaseUser) => void }) {
@@ -63,6 +66,47 @@ function AuthModal({ open, onClose, onAuthSuccess }: { open: boolean; onClose: (
   )
 }
 
+// Unauthorized Access Component
+function UnauthorizedAccess({ user, onSignOut }: { user: FirebaseUser | null; onSignOut: () => void }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 relative overflow-hidden flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl mb-4 shadow-2xl">
+              <Shield className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-white">Access Denied</CardTitle>
+            <CardDescription className="text-red-200">
+              This dashboard is restricted to administrators only
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {user && (
+              <div className="text-center text-red-200 text-sm">
+                <p>Signed in as: {user.email}</p>
+                <p className="text-xs mt-1">You don't have admin privileges</p>
+              </div>
+            )}
+            <Alert className="bg-red-500/20 border-red-400/30 backdrop-blur-sm">
+              <AlertCircle className="h-4 w-4 text-red-300" />
+              <AlertDescription className="text-red-200">
+                Only users with admin role can access this dashboard. Please contact your administrator if you believe this is an error.
+              </AlertDescription>
+            </Alert>
+            <Button
+              onClick={onSignOut}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+            >
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [showMembersList, setShowMembersList] = useState(false)
   const [showRevenueList, setShowRevenueList] = useState(false)
@@ -80,6 +124,7 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(true)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null)
+  const { userRole, userData, loading: roleLoading, error: roleError } = useUserRole(authUser)
 
   useEffect(() => {
     setDataLoading(true)
@@ -134,8 +179,49 @@ export default function DashboardPage() {
     return () => unsubscribe()
   }, [])
 
+  // Handle sign out
+  const handleSignOut = async () => {
+    await signOut(auth)
+    setAuthUser(null)
+  }
+
   if (!authUser) {
     return <AuthModal open={authModalOpen} onClose={() => {}} onAuthSuccess={setAuthUser} />
+  }
+
+  // Show loading while checking role
+  if (authUser && roleLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Checking permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show unauthorized if user is authenticated but not admin
+  if (authUser && !roleLoading && userRole !== 'admin') {
+    return <UnauthorizedAccess user={authUser} onSignOut={handleSignOut} />
+  }
+
+  // Show role error if there's an error fetching role
+  if (authUser && roleError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 flex items-center justify-center p-4">
+        <Card className="backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl max-w-md w-full">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Error</h2>
+            <p className="text-red-200 mb-4">{roleError}</p>
+            <Button onClick={handleSignOut} className="bg-red-600 hover:bg-red-700">
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (dataLoading) {
