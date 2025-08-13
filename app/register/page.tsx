@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const [usePaystackPayment, setUsePaystackPayment] = useState<any>(null)
 
   const paystackPublicKey = "pk_live_f3b615e142ef313c212a99dd33a7fb70faf8cf6f"; // Replace with your Paystack public key
+  
   const router = useRouter();
 
   // Load Paystack hook only on client side

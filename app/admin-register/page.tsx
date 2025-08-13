@@ -172,24 +172,6 @@ export default function AdminRegisterPage() {
     }
       )
 
-    //   {
-    //     surname: string;
-    //     otherNames: string;
-    //     email: string;
-    //     phone: string;
-    //     price: string;
-    //     role: string;
-    // }
-
-
-  //   {
-  //     surname: string;
-  //     otherNames: string;
-  //     email: string;
-  //     phone: string;
-  //     price: string;
-  //     role: string;
-  // }
 
       setSuccess(true)
       setFormData({

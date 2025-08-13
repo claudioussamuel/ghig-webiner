@@ -95,6 +95,7 @@ export default function DashboardPage() {
           status: data.payed ? "paid" : "free",
           amount: data.price,
           date: data.createdAt?.toDate ? data.createdAt.toDate().toISOString().split("T")[0] : "",
+          role: data.role,
         }
       })
       setMembersData(members)
@@ -150,7 +151,7 @@ export default function DashboardPage() {
 
   const exportToCSV = () => {
     // Define CSV headers
-    const headers = ["Name", "Email", "Phone", "Status", "Amount (GHS)", "Registration Date"]
+    const headers = ["Name", "Email", "Phone", "Role", "Status", "Amount (GHS)", "Registration Date"]
     // Convert data to CSV format
     const csvContent = [
       headers.join(","),
@@ -159,6 +160,7 @@ export default function DashboardPage() {
           `"${member.name}"`,
           `"${member.email}"`,
           `"${member.phone}"`,
+          `"${member.role}"`,
           `"${member.status}"`,
           typeof member.amount === "string" && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount,
           `"${new Date(member.date).toLocaleDateString()}"`,
