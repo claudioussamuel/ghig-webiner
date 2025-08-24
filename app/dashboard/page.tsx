@@ -139,6 +139,7 @@ export default function DashboardPage() {
           name: `${data.surname} ${data.otherNames}`,
           email: data.email,
           phone: data.phone,
+          pinCode: data.pinCode,
           status: data.payed ? "paid" : "free",
           amount: data.price,
           date: data.createdAt?.toDate ? data.createdAt.toDate().toISOString().split("T")[0] : "",
@@ -240,7 +241,7 @@ export default function DashboardPage() {
 
   const exportToCSV = () => {
     // Define CSV headers
-    const headers = ["Name", "Email", "Phone", "Role", "Status", "Amount (GHS)", "Registration Date"]
+    const headers = ["Name", "Email", "Phone", "Pin Code", "Role", "Status", "Amount (GHS)", "Registration Date"]
     // Convert data to CSV format
     const csvContent = [
       headers.join(","),
@@ -249,6 +250,7 @@ export default function DashboardPage() {
           `"${member.name}"`,
           `"${member.email}"`,
           `"${member.phone}"`,
+          `"${member.pinCode}"`,
           `"${member.role}"`,
           `"${member.status}"`,
           typeof member.amount === "string" && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount,
@@ -388,6 +390,7 @@ export default function DashboardPage() {
                           <div className="space-y-1 text-sm text-purple-200">
                             <p>{member.email}</p>
                             <p>{member.phone}</p>
+                            <p className="font-mono text-purple-300">Pin: {member.pinCode || 'N/A'}</p>
                             <div className="flex justify-between items-center pt-2">
                               <span>{new Date(member.date).toLocaleDateString()}</span>
                               <span className="font-medium text-white">
@@ -447,6 +450,7 @@ export default function DashboardPage() {
                           <div className="space-y-1 text-sm text-purple-200">
                             <p>{member.email}</p>
                             <p>{member.phone}</p>
+                            <p className="font-mono text-purple-300">Pin: {member.pinCode || 'N/A'}</p>
                             <div className="flex justify-between items-center pt-2">
                               <span>Payment Date: {new Date(member.date).toLocaleDateString()}</span>
                             </div>
@@ -504,6 +508,7 @@ export default function DashboardPage() {
                           <div className="space-y-1 text-sm text-purple-200">
                             <p>{member.email}</p>
                             <p>{member.phone}</p>
+                            <p className="font-mono text-purple-300">Pin: {member.pinCode || 'N/A'}</p>
                             <div className="flex justify-between items-center pt-2">
                               <span>Joined: {new Date(member.date).toLocaleDateString()}</span>
                               <span className="text-orange-300 font-medium">No Payment</span>
@@ -701,6 +706,7 @@ export default function DashboardPage() {
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Name</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Email</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Phone</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Pin Code</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Status</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Amount</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Date</th>
@@ -712,6 +718,7 @@ export default function DashboardPage() {
                             <td className="py-3 px-4 text-sm text-white font-medium">{member.name}</td>
                             <td className="py-3 px-4 text-sm text-purple-200">{member.email}</td>
                             <td className="py-3 px-4 text-sm text-purple-200">{member.phone}</td>
+                            <td className="py-3 px-4 text-sm text-purple-200 font-mono">{member.pinCode || 'N/A'}</td>
                             <td className="py-3 px-4">
                               <Badge
                                 className={
