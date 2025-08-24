@@ -2,11 +2,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, DollarSign, TrendingUp, UserCheck, UserX, Sparkles, BarChart3, Calendar, X } from "lucide-react"
+import { Users, DollarSign, TrendingUp, UserCheck, UserX, Sparkles, BarChart3, Calendar, X, Edit, Trash2, Save } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { db } from "../config/firebase"
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore"
 import { auth } from "../config/firebase"
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User as FirebaseUser } from "firebase/auth"
 import { useUserRole } from "../hooks/useUserRole"
@@ -127,6 +127,11 @@ export default function DashboardPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [authUser, setAuthUser] = useState<FirebaseUser | null>(null)
   const { userRole, userData, loading: roleLoading, error: roleError } = useUserRole(authUser)
+  const [editingUser, setEditingUser] = useState<any>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<any>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     setDataLoading(true)
@@ -186,6 +191,102 @@ export default function DashboardPage() {
   const handleSignOut = async () => {
     await signOut(auth)
     setAuthUser(null)
+  }
+
+  // Refresh data function
+  const refreshData = async () => {
+    setDataLoading(true)
+    const snapshot = await getDocs(collection(db, "webinar-1"))
+    const members = snapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        name: `${data.surname} ${data.otherNames}`,
+        email: data.email,
+        phone: data.phone,
+        pinCode: data.pinCode,
+        status: data.payed ? "paid" : "free",
+        amount: data.price,
+        date: data.createdAt?.toDate ? data.createdAt.toDate().toISOString().split("T")[0] : "",
+        role: data.role,
+      }
+    })
+    setMembersData(members)
+    // Calculate stats
+    const paidMembers = members.filter(m => m.status === "paid").length
+    const freeMembers = members.filter(m => m.status === "free").length
+    const totalRevenue = members
+      .filter(m => m.status === "paid")
+      .reduce((sum, m) => {
+        const match = typeof m.amount === "string" ? m.amount.match(/\d+/) : null
+        return sum + (match ? parseInt(match[0], 10) : 0)
+      }, 0)
+    setStats({
+      totalMembers: members.length,
+      paidMembers,
+      freeMembers,
+      totalRevenue,
+      monthlyRevenue: totalRevenue,
+      revenueGrowth: 0,
+      memberGrowth: 0,
+    })
+    setDataLoading(false)
+  }
+
+  // Handle delete user
+  const handleDeleteUser = async (user: any) => {
+    setUserToDelete(user)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return
+    setActionLoading(true)
+    try {
+      await deleteDoc(doc(db, "webinar-1", userToDelete.id))
+      await refreshData()
+      setShowDeleteConfirm(false)
+      setUserToDelete(null)
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      alert("Failed to delete user. Please try again.")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle edit user
+  const handleEditUser = (user: any) => {
+    setEditingUser({ ...user })
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingUser) return
+    setActionLoading(true)
+    try {
+      const [surname, ...otherNamesParts] = editingUser.name.split(' ')
+      const otherNames = otherNamesParts.join(' ')
+      
+      await updateDoc(doc(db, "webinar-1", editingUser.id), {
+        surname: surname || '',
+        otherNames: otherNames || '',
+        email: editingUser.email,
+        phone: editingUser.phone,
+        pinCode: editingUser.pinCode,
+        role: editingUser.role,
+        payed: editingUser.status === "paid",
+        price: editingUser.amount
+      })
+      await refreshData()
+      setShowEditModal(false)
+      setEditingUser(null)
+    } catch (error) {
+      console.error("Error updating user:", error)
+      alert("Failed to update user. Please try again.")
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   if (!authUser) {
@@ -376,16 +477,38 @@ export default function DashboardPage() {
                           className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-white">{member.name}</h3>
-                            <Badge
-                              className={
-                                member.status === "paid"
-                                  ? "bg-green-500/20 text-green-300 border-green-400/30"
-                                  : "bg-orange-500/20 text-orange-300 border-orange-400/30"
-                              }
-                            >
-                              {member.status === "paid" ? "Paid" : "Free"}
-                            </Badge>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-semibold text-white">{member.name}</h3>
+                              <Badge
+                                className={
+                                  member.status === "paid"
+                                    ? "bg-green-500/20 text-green-300 border-green-400/30"
+                                    : "bg-orange-500/20 text-orange-300 border-orange-400/30"
+                                }
+                              >
+                                {member.status === "paid" ? "Paid" : "Free"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditUser(member)}
+                                className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                disabled={actionLoading}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteUser(member)}
+                                className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                disabled={actionLoading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-1 text-sm text-purple-200">
                             <p>{member.email}</p>
@@ -439,12 +562,38 @@ export default function DashboardPage() {
                           className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-white">{member.name}</h3>
-                            <div className="text-right">
-                              <p className="text-lg font-bold text-green-300">
-                                GH₵{typeof member.amount === 'string' && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount}
-                              </p>
-                              <Badge className="bg-green-500/20 text-green-300 border-green-400/30 text-xs">Paid</Badge>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-white">{member.name}</h3>
+                                <div className="flex items-center space-x-2">
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-green-300">
+                                      GH₵{typeof member.amount === 'string' && member.amount.match(/\d+/) ? member.amount.match(/\d+/)[0] : member.amount}
+                                    </p>
+                                    <Badge className="bg-green-500/20 text-green-300 border-green-400/30 text-xs">Paid</Badge>
+                                  </div>
+                                  <div className="flex items-center space-x-1 ml-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditUser(member)}
+                                      className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                      disabled={actionLoading}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteUser(member)}
+                                      className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                      disabled={actionLoading}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                           <div className="space-y-1 text-sm text-purple-200">
@@ -502,8 +651,30 @@ export default function DashboardPage() {
                           className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-white">{member.name}</h3>
-                            <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">Free</Badge>
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-semibold text-white">{member.name}</h3>
+                              <Badge className="bg-orange-500/20 text-orange-300 border-orange-400/30">Free</Badge>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditUser(member)}
+                                className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                disabled={actionLoading}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteUser(member)}
+                                className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                disabled={actionLoading}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-1 text-sm text-purple-200">
                             <p>{member.email}</p>
@@ -525,6 +696,175 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-xs text-purple-300 mt-1">If converted to paid memberships</p>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit User Modal */}
+            {showEditModal && editingUser && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-violet-900/95 via-purple-900/95 to-indigo-900/95 rounded-2xl backdrop-blur-xl border border-white/20 shadow-2xl p-6 w-full max-w-md">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-white">Edit User</h2>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowEditModal(false)} 
+                      className="text-white hover:bg-white/10"
+                      disabled={actionLoading}
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={editingUser.name}
+                        onChange={(e) => setEditingUser({...editingUser, name: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={actionLoading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={editingUser.email}
+                        onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={actionLoading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Phone</label>
+                      <input
+                        type="text"
+                        value={editingUser.phone}
+                        onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={actionLoading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Pin Code</label>
+                      <input
+                        type="text"
+                        value={editingUser.pinCode || ''}
+                        onChange={(e) => setEditingUser({...editingUser, pinCode: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                        disabled={actionLoading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Role</label>
+                      <input
+                        type="text"
+                        value={editingUser.role || ''}
+                        onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={actionLoading}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-purple-200 mb-1">Status</label>
+                      <select
+                        value={editingUser.status}
+                        onChange={(e) => setEditingUser({...editingUser, status: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={actionLoading}
+                      >
+                        <option value="free" className="bg-purple-900">Free</option>
+                        <option value="paid" className="bg-purple-900">Paid</option>
+                      </select>
+                    </div>
+                    
+                    {editingUser.status === 'paid' && (
+                      <div>
+                        <label className="block text-sm font-medium text-purple-200 mb-1">Amount</label>
+                        <input
+                          type="text"
+                          value={editingUser.amount || ''}
+                          onChange={(e) => setEditingUser({...editingUser, amount: e.target.value})}
+                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          disabled={actionLoading}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-3 mt-6">
+                    <Button
+                      onClick={() => setShowEditModal(false)}
+                      variant="outline"
+                      className="flex-1 bg-white/10 border-white/20 text-purple-200 hover:bg-white/20"
+                      disabled={actionLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && userToDelete && (
+              <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-red-900/95 via-red-800/95 to-red-900/95 rounded-2xl backdrop-blur-xl border border-red-500/20 shadow-2xl p-6 w-full max-w-md">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Trash2 className="w-8 h-8 text-red-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Delete User</h2>
+                    <p className="text-red-200 mb-6">
+                      Are you sure you want to delete <strong>{userToDelete.name}</strong>? This action cannot be undone.
+                    </p>
+                    
+                    <div className="flex space-x-3">
+                      <Button
+                        onClick={() => {
+                          setShowDeleteConfirm(false)
+                          setUserToDelete(null)
+                        }}
+                        variant="outline"
+                        className="flex-1 bg-white/10 border-white/20 text-red-200 hover:bg-white/20"
+                        disabled={actionLoading}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={confirmDelete}
+                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                        disabled={actionLoading}
+                      >
+                        {actionLoading ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                        ) : (
+                          <Trash2 className="w-4 h-4 mr-2" />
+                        )}
+                        Delete User
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -710,6 +1050,7 @@ export default function DashboardPage() {
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Status</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Amount</th>
                           <th className="text-left py-3 px-4 text-sm font-medium text-purple-200">Date</th>
+                          <th className="text-center py-3 px-4 text-sm font-medium text-purple-200">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -735,6 +1076,28 @@ export default function DashboardPage() {
                             </td>
                             <td className="py-3 px-4 text-sm text-purple-200">
                               {new Date(member.date).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center justify-center space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditUser(member)}
+                                  className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+                                  disabled={actionLoading}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(member)}
+                                  className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                                  disabled={actionLoading}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
